@@ -14,9 +14,7 @@ export default function LoginScreen({ navigation }: any) {
   const isButtonEnabled = () => {
     return isEmailValid(email) && password.length >= 6;
   };
-  const displayLoader = () => {
-    setShow(true);
-  }
+  
 
   return (
     <View style={styles.container}>
@@ -32,15 +30,31 @@ export default function LoginScreen({ navigation }: any) {
         value={password}
         onChangeText={setPassword}
       />
-      <TouchableOpacity style={[styles.button, !isButtonEnabled() && styles.buttonDisabled]}
-      disabled={!isButtonEnabled()}
-      onPress={() => 
-      {displayLoader();
-      navigation.navigate('Home')}}>
+      {loading && (
+    <View style={styles.overlay}>
+      <ActivityIndicator size="large" color="#fff" />
+    </View>
+)}
+      <TouchableOpacity
+        style={[styles.button, (!isButtonEnabled() || loading) && styles.buttonDisabled]}
+        disabled={!isButtonEnabled() || loading}
+        onPress={() => {
+          if (!isButtonEnabled()) return;
+
+          setLoading(true);
+
+          setTimeout(() => {
+            setLoading(false);
+            navigation.navigate('Home');
+          }, 5000);
+        }}
+      >
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
+
+
       
-      <ActivityIndicator size="large" color='#007bff' />
+    
     </View>
   );
 }
@@ -80,5 +94,16 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     backgroundColor: '#A0CFFF', 
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
   },
 });
