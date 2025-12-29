@@ -1,28 +1,72 @@
 import React, { useState } from 'react';
-import { View, Text, Button, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../App'; // import type
+import Colors from '../constants'; 
 
+type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+//Creates a type for the navigation prop 
 
+type Props = {
+  navigation: LoginScreenNavigationProp;
+};
 
-export default function LoginScreen({ navigation }: any) {
-  const [email, setEmail] = useState('');
+export default function LoginScreen({ navigation }: Props) {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isEmailValid = (value: string) => {
-    return value.includes('@') && value.includes('.');
-  };
-  const isButtonEnabled = () => {
-    return isEmailValid(email) && password.length >= 6;
-  };
-  
+const isButtonEnabled = () => {
+  return username.length > 0 && password.length > 0;
+};
+
+
+
+  const handleLogin = async () => {
+  if (!isButtonEnabled()) return;
+
+  setLoading(true);
+
+  try {
+    const response = await fetch('https://fakestoreapi.com/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: username, 
+        password: password,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Invalid credentials');
+    }
+
+    const data = await response.json();
+
+    // Save token
+    await AsyncStorage.setItem('token', data.token);
+
+    // Navigate and disable back
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Home' }],
+    });
+
+  } catch (error) {
+    Alert.alert('Login Failed', 'Please check your credentials.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <View style={styles.container}>
           <TextInput style={styles.input}
-        placeholder="Email"
-        keyboardType="email-address"
-        value={email}
-        onChangeText={setEmail}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
         autoCapitalize="none"
       />
        <TextInput style={styles.input} placeholder="Password"
@@ -32,28 +76,19 @@ export default function LoginScreen({ navigation }: any) {
       />
       {loading && (
     <View style={styles.overlay}>
-      <ActivityIndicator size="large" color="#fff" />
+      <ActivityIndicator size="large" />
     </View>
 )}
       <TouchableOpacity
         style={[styles.button, (!isButtonEnabled() || loading) && styles.buttonDisabled]}
         disabled={!isButtonEnabled() || loading}
-        onPress={() => {
-          if (!isButtonEnabled()) return;
+       onPress={handleLogin}
 
-          setLoading(true);
-
-          setTimeout(() => {
-            setLoading(false);
-            navigation.navigate('Home');
-          }, 5000);
-        }}
       >
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
 
-      
     
     </View>
   );
@@ -65,35 +100,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',  
     alignItems: 'center',      
     padding: 20,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: Colors.background,
   },
   
   input: {
     width: '100%',
     height: 50,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.primary,
     paddingHorizontal: 15,
     borderRadius: 8,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: Colors.secondary,
   },
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: '#007bff',
+    backgroundColor: Colors.primaryButton,
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: Colors.primary,
     fontSize: 18,
     fontWeight: 'bold',
   },
   buttonDisabled: {
-    backgroundColor: '#A0CFFF', 
+    backgroundColor: Colors.disabledButton, 
   },
   overlay: {
     position: "absolute",
@@ -101,7 +136,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: Colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     zIndex: 999,
