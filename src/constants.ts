@@ -5,6 +5,8 @@ const Colors = {
   primary: '#fff',
   secondary: '#ccc',
   overlay: '#rgba(0,0,0,0.5)',
+  black: '#000',
+  grey: '#666666',
 };
 
 export default Colors;

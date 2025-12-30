@@ -1,15 +1,27 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../../App'; // import type
+import { RootStackParamList } from '../../App';
+import { loginApi } from '../api/authApi';
+import { saveToken } from '../storage/authStorage';
 import Colors from '../constants'; 
 
-type LoginScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
-//Creates a type for the navigation prop 
+
+type NavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  'Login'
+>;
 
 type Props = {
-  navigation: LoginScreenNavigationProp;
+  navigation: NavigationProp;
 };
 
 export default function LoginScreen({ navigation }: Props) {
@@ -17,79 +29,59 @@ export default function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-const isButtonEnabled = () => {
-  return username.length > 0 && password.length > 0;
-};
-
-
+  const isButtonEnabled = () => username.length > 0 && password.length > 0;
 
   const handleLogin = async () => {
-  if (!isButtonEnabled()) return;
+    if (!isButtonEnabled()) return; 
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const response = await fetch('https://fakestoreapi.com/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: username, 
-        password: password,
-      }),
-    });
+    try {
+      const data = await loginApi(username, password);
+      await saveToken(data.token);
 
-    if (!response.ok) {
-      throw new Error('Invalid credentials');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+    } catch (error) {
+      Alert.alert('Login Failed', 'Please check your credentials');
+    } finally {
+      setLoading(false);
     }
-
-    const data = await response.json();
-
-    // Save token
-    await AsyncStorage.setItem('token', data.token);
-
-    // Navigate and disable back
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Home' }],
-    });
-
-  } catch (error) {
-    Alert.alert('Login Failed', 'Please check your credentials.');
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <View style={styles.container}>
-          <TextInput style={styles.input}
+      <TextInput
+        style={styles.input}
         placeholder="Username"
+        placeholderTextColor={Colors.grey}
         value={username}
         onChangeText={setUsername}
-        autoCapitalize="none"
       />
-       <TextInput style={styles.input} placeholder="Password"
+
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        placeholderTextColor={Colors.grey}
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
-      {loading && (
-    <View style={styles.overlay}>
-      <ActivityIndicator size="large" />
-    </View>
-)}
-      <TouchableOpacity
-        style={[styles.button, (!isButtonEnabled() || loading) && styles.buttonDisabled]}
-        disabled={!isButtonEnabled() || loading}
-       onPress={handleLogin}
 
+      <TouchableOpacity
+        style={[
+          styles.button,
+          (!isButtonEnabled || loading) && styles.disabled,
+        ]}
+      disabled={!isButtonEnabled() || loading} 
+        onPress={handleLogin}
       >
-        <Text style={styles.buttonText}>Login</Text>
+        <Text style={styles.text}>Login</Text>
       </TouchableOpacity>
 
-
-    
+      {loading && <ActivityIndicator style={{ marginTop: 20 }} />}
     </View>
   );
 }
@@ -97,48 +89,29 @@ const isButtonEnabled = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',  
-    alignItems: 'center',      
+    justifyContent: 'center',
     padding: 20,
     backgroundColor: Colors.background,
   },
-  
   input: {
-    width: '100%',
-    height: 50,
     backgroundColor: Colors.primary,
-    paddingHorizontal: 15,
-    borderRadius: 8,
-    marginBottom: 15,
     borderWidth: 1,
+    marginBottom: 12,
+    padding: 10,
+    borderRadius: 6,
     borderColor: Colors.secondary,
   },
   button: {
-    width: '100%',
-    height: 50,
     backgroundColor: Colors.primaryButton,
-    borderRadius: 8,
-    justifyContent: 'center',
+    padding: 14,
     alignItems: 'center',
-    marginTop: 10,
+    borderRadius: 6,
   },
-  buttonText: {
+  disabled: {
+   backgroundColor: Colors.disabledButton, 
+  },
+  text: {
     color: Colors.primary,
-    fontSize: 18,
     fontWeight: 'bold',
-  },
-  buttonDisabled: {
-    backgroundColor: Colors.disabledButton, 
-  },
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.overlay,
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 999,
   },
 });
